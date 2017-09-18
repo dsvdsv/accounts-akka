@@ -24,28 +24,28 @@ class BankTransferSpec extends TestKit(ActorSystem("BankTransferSpec")) with Imp
 
     it("success flow can be work") {
       bank ! Transfer(10, 1, 2)
-      expectMsg(1.second, MoneyDeposited)
+      expectMsg(10.second, MoneyDeposited)
     }
 
     it("get MoneyNotEnough if impossible to withdraw") {
       bank ! Transfer(110, 1, 2)
-      expectMsg(1.second, MoneyNotEnough)
+      expectMsg(10.second, MoneyNotEnough)
     }
 
     it("get AccountNotExist if both account not exist") {
       bank ! Transfer(10, 999, 8989)
-      expectMsg(1.second, AccountNotExist)
+      expectMsg(10.second, AccountNotExist)
 
     }
 
     it("get AccountNotExist if from account not exist") {
       bank ! Transfer(10, 999, 2)
-      expectMsg(1.second, AccountNotExist)
+      expectMsg(10.second, AccountNotExist)
     }
 
     it("get AccountNotExist if to account not exist") {
       bank ! Transfer(10, 1, 3123)
-      expectMsg(1.second, AccountNotExist)
+      expectMsg(10.second, AccountNotExist)
     }
   }
 }

@@ -25,7 +25,7 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) wi
       info("Deposit 10 to account")
       (account ! Deposit(10, 1)) (probe.ref)
 
-      probe.expectMsg(1.second, Deposited(10, 1))
+      probe.expectMsg(10.second, Deposited(10, 1))
     }
 
     it("account should success withdrawn") {
@@ -37,7 +37,7 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) wi
       info("Withdraw 10 from account")
       (account ! Withdraw(10, 1)) (probe.ref)
 
-      probe.expectMsg(1.second, Withdrawn(10, 1))
+      probe.expectMsg(10.second, Withdrawn(10, 1))
     }
 
     it("get error if balance not enough") {
@@ -48,7 +48,7 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) wi
 
       (account ! Withdraw(100, 1)) (probe.ref)
 
-      probe.expectMsg(1.second, BalanceNotEnough)
+      probe.expectMsg(10.second, BalanceNotEnough)
     }
   }
 }

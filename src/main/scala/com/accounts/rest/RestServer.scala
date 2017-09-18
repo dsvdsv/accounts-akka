@@ -14,7 +14,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.accounts.rest.actor.Account.{Deposited, Initialized, Withdrawn}
 import com.accounts.rest.actor.Bank
-import com.accounts.rest.actor.Bank.{AccountNotExist, Transfer}
+import com.accounts.rest.actor.Bank.{AccountNotExist, Restricted, Transfer}
 import com.accounts.rest.actor.Transaction.{MoneyDeposited, MoneyNotEnough, Rollback}
 import spray.json.DefaultJsonProtocol._
 
@@ -92,6 +92,7 @@ object RestServer extends HttpApp {
               case Failure(ex) => complete(StatusCodes.BadRequest, Response(ex.toString))
               case Success(r) => r match {
                 case MoneyDeposited => complete(Response("Ok"))
+                case Restricted => complete(StatusCodes.BadRequest, Response("This transfer is restricted"))
                 case Rollback => complete(StatusCodes.BadRequest, Response("Not possible to process this payment"))
                 case MoneyNotEnough => complete(StatusCodes.BadRequest, Response("Not enough money on source account"))
                 case AccountNotExist => complete(StatusCodes.BadRequest, Response("Account does not exist"))

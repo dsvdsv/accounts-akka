@@ -22,12 +22,15 @@ class Bank(accounts: Map[Long, Long]) extends Actor
 
   override def receive = {
     case Transfer(amount, from, to) =>
-      (context.child(accountName(from)), context.child(accountName(to))) match {
-        case (Some(fromAccount), Some(toAccount)) =>
-          makeTransfer(amount, fromAccount, toAccount)
-        case _ => sender() ! AccountNotExist
+      if (from == to || amount < 1) {
+        sender() ! Restricted
+      } else {
+        (context.child(accountName(from)), context.child(accountName(to))) match {
+          case (Some(fromAccount), Some(toAccount)) =>
+            makeTransfer(amount, fromAccount, toAccount)
+          case _ => sender() ! AccountNotExist
+        }
       }
-
   }
 
   def accountName(accountId: Long) = s"account-$accountId"
@@ -48,6 +51,7 @@ object Bank {
 
   case class Transfer(amount: Long, from: Long, to: Long) extends BankCommand
   case object AccountNotExist
+  case object Restricted
 
   def props(accounts: Map[Long, Long]) =
     Props(new Bank(accounts))
