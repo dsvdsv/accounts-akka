@@ -7,7 +7,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
 import scala.concurrent.duration._
 
-class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec", config)) with ImplicitSender
+class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) with ImplicitSender
   with FunSpecLike with Matchers with BeforeAndAfterAll {
 
   override def afterAll {
@@ -26,11 +26,6 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec", con
       (account ! Deposit(10, 1)) (probe.ref)
 
       probe.expectMsg(1.second, Deposited(10, 1))
-
-      info("Checking that balance of account has been changed")
-      (account ! GetBalance) (probe.ref)
-
-      probe.expectMsg(1.second, Balance(110))
     }
 
     it("account should success withdrawn") {
@@ -43,26 +38,17 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec", con
       (account ! Withdraw(10, 1)) (probe.ref)
 
       probe.expectMsg(1.second, Withdrawn(10, 1))
-
-      info("Checking that balance of accounts has been changed")
-      (account ! GetBalance) (probe.ref)
-
-      probe.expectMsg(1.second, Balance(90))
     }
 
     it("get error if balance not enough") {
 
       val probe = TestProbe()
 
-      val account = system.actorOf(Account.props(System.currentTimeMillis(), 10))
+      val account = system.actorOf(Account.props(3, 10))
 
-      EventFilter[BalanceNotEnough]() intercept {
-        (account ! Withdraw(100, 1)) (probe.ref)
-      }
+      (account ! Withdraw(100, 1)) (probe.ref)
 
-      (account ! GetBalance) (probe.ref)
-
-      probe.expectMsg(1.second, Balance(10))
+      probe.expectMsg(1.second, BalanceNotEnough)
     }
   }
 }

@@ -33,7 +33,6 @@ class Account(id: Long, initBalance: Long) extends PersistentActor
   override def receiveCommand = {
     case Create(balance) =>
       persist(Initialized(balance)) { i =>
-        log.debug("Account {} is initialized with balance {}", id, balance)
         context.become(awaitCommand(i.amount))
         unstashAll()
       }
@@ -45,22 +44,18 @@ class Account(id: Long, initBalance: Long) extends PersistentActor
       persist(Deposited(amount, transactionId)) { d =>
         val newBalance = balance + d.amount
         context.become(awaitCommand(newBalance))
-        log.debug("Account {} is deposited, balance {}", id, newBalance)
         sender() ! d
       }
     case Withdraw(amount, transactionId) =>
       if (balance < amount) {
-        throw BalanceNotEnough()
+        sender() ! BalanceNotEnough
       } else {
         persist(Withdrawn(amount, transactionId)) { w =>
           val newBalance = balance - w.amount
-          printf("New balance " + newBalance)
           context.become(awaitCommand(newBalance))
-          log.debug("Account {} is withdrawn, balance {}", id, newBalance)
           sender() ! w
         }
       }
-    case GetBalance => sender() ! Balance(balance)
   }
 
 }
@@ -70,16 +65,12 @@ sealed trait AccountEvent
 
 object Account {
 
-  // protocol
   private case class Create(balance: Long) extends AccountCommand
   case class Deposit(amount: Long, transactionId: Long) extends AccountCommand
   case class Withdraw(amount: Long, transactionId: Long) extends AccountCommand
-  case object GetBalance extends AccountCommand
 
-  case class Balance(balance: Long)
-  case class BalanceNotEnough() extends RuntimeException
+  case object BalanceNotEnough
 
-  // events
   case class Initialized(amount: Long) extends AccountEvent
   case class Withdrawn(amount: Long, transactionId: Long) extends AccountEvent
   case class Deposited(amount: Long, transactionId: Long) extends AccountEvent

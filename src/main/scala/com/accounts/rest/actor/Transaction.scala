@@ -2,10 +2,10 @@ package com.accounts.rest.actor
 
 
 import akka.actor.{ActorLogging, ActorRef, Cancellable, Props}
+import akka.persistence.{PersistentActor, RecoveryCompleted}
+import com.accounts.rest.actor.Account._
 
 import scala.concurrent.duration._
-import akka.persistence.{PersistentActor, RecoveryCompleted}
-import com.accounts.rest.actor.Account.{Deposited, Deposit, Withdraw, Withdrawn}
 
 class Transaction(transactionId: Long) extends PersistentActor
   with ActorLogging {
@@ -27,12 +27,13 @@ class Transaction(transactionId: Long) extends PersistentActor
         last = e
       case RecoveryCompleted => last match {
         case null => // wait for initialization
-        case t: TransactionStarted =>
+        case _: TransactionStarted =>
           withdrawMoney(started)
         case MoneyWithdrawn =>
           depositMoney(started)
         case MoneyDeposited => context.stop(self)
         case Rollback       => context.stop(self)
+        case MoneyNotEnough => context.stop(self)
       }
     }
   }
@@ -42,41 +43,54 @@ class Transaction(transactionId: Long) extends PersistentActor
       persist(TransactionStarted(amount, from.path.toString, to.path.toString))(withdrawMoney)
   }
 
-  def withdrawMoney(t: TransactionStarted): Unit = {
-    context.actorSelection(t.fromActor) ! Withdraw(t.amount, transactionId)
-    val cancelTask = context.system
-      .scheduler.scheduleOnce(100 milliseconds, self, Rollback)
+  def withdrawMoney(ts: TransactionStarted): Unit = {
+    context.actorSelection(ts.fromActor) ! Withdraw(ts.amount, transactionId)
 
-    context.become(awaitWithdrawn(cancelTask, t))
+    context.become(
+      awaitWithdrawn(
+        scheduleRollback,
+        ts
+      )
+    )
   }
 
-  def awaitWithdrawn(cancelTask: Cancellable, t: TransactionStarted): Receive = {
+  def awaitWithdrawn(rollbackTask: Cancellable, t: TransactionStarted): Receive = {
     case r @ Rollback =>
-      persist(r)(_ => context.stop(self))
+      persist(r){_ => context.stop(self) }
     case Withdrawn(_, _) =>
-      cancelTask.cancel()
+      rollbackTask.cancel()
       persist(MoneyWithdrawn)(_ => depositMoney(t))
+    case BalanceNotEnough =>
+      persist(MoneyNotEnough){_ => context.stop(self) }
   }
 
-  def depositMoney(t: TransactionStarted): Unit = {
-    context.actorSelection(t.toActor) ! Deposit(t.amount, transactionId)
-    val cancelTask = context.system
-      .scheduler.scheduleOnce(100 milliseconds, self, Rollback)
-    context.become(awaitDeposited(cancelTask, t))
+  def depositMoney(ts: TransactionStarted): Unit = {
+    context.actorSelection(ts.toActor) ! Deposit(ts.amount, transactionId)
+
+    context.become(
+      awaitDeposited(
+        scheduleRollback,
+        ts
+      ))
   }
 
-  def awaitDeposited(cancelTask: Cancellable, t: TransactionStarted): Receive = {
-    case r @ Rollback =>
+  def awaitDeposited(rollbackTask: Cancellable, t: TransactionStarted): Receive = {
+    case Rollback =>
       context.actorSelection(t.fromActor) ! Deposit(t.amount, transactionId)
       context.become(awaitRollback)
     case Deposited(_, _) =>
-      cancelTask.cancel()
-      persist(MoneyDeposited)(_ => context.stop(self))
+      rollbackTask.cancel()
+      persist(MoneyDeposited){_ => context.stop(self) }
   }
 
   def awaitRollback: Receive = {
     case Deposited(_, _) =>
-      persist(Rollback)(_ => context.stop(self))
+      persist(Rollback) {_ => context.stop(self) }
+  }
+
+  private def scheduleRollback = {
+    context.system
+      .scheduler.scheduleOnce(100 milliseconds, self, Rollback)
   }
 }
 
@@ -98,7 +112,7 @@ object Transaction{
   case object MoneyWithdrawn extends TransactionEvent
   case object MoneyDeposited extends TransactionEvent
   case object Rollback extends TransactionEvent
-
+  case object MoneyNotEnough extends TransactionEvent
 
   def props(transactionId: Long) =
     Props(new Transaction(transactionId))
