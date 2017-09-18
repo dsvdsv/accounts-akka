@@ -31,14 +31,12 @@ class Waiter(transactionId: Long, transaction: ActorRef, replayTo: ActorRef) ext
 
       lastElement.pipeTo(replayTo)
         .onComplete { _ => materializer.shutdown() }
-
+      println(s"Transaction completed $transactionId")
       context.stop(self)
   }
 }
 
 object Waiter {
-
   def props(transactionId: Long, transaction: ActorRef, replayTo: ActorRef) =
     Props(new Waiter(transactionId, transaction, replayTo))
-
 }

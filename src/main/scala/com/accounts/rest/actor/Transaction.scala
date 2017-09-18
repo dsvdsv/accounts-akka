@@ -61,6 +61,7 @@ class Transaction(transactionId: Long) extends PersistentActor
       rollbackTask.cancel()
       persist(MoneyWithdrawn)(_ => depositMoney(t))
     case BalanceNotEnough =>
+      rollbackTask.cancel()
       persist(MoneyNotEnough){_ => context.stop(self) }
   }
 
