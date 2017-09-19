@@ -19,10 +19,7 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) wi
     it("account should success deposited") {
       val probe = TestProbe()
 
-      info("Create account with balance = 100")
       val account = system.actorOf(Account.props(1, 100))
-
-      info("Deposit 10 to account")
       (account ! Deposit(10, 1)) (probe.ref)
 
       probe.expectMsg(10.second, Deposited(10, 1))
@@ -31,10 +28,7 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) wi
     it("account should success withdrawn") {
       val probe = TestProbe()
 
-      info("Create account with balance = 100")
       val account = system.actorOf(Account.props(2, 100))
-
-      info("Withdraw 10 from account")
       (account ! Withdraw(10, 1)) (probe.ref)
 
       probe.expectMsg(10.second, Withdrawn(10, 1))
@@ -45,7 +39,6 @@ class AccountTransferSpec extends TestKit(ActorSystem("AccountTransferSpec")) wi
       val probe = TestProbe()
 
       val account = system.actorOf(Account.props(3, 10))
-
       (account ! Withdraw(100, 1)) (probe.ref)
 
       probe.expectMsg(10.second, BalanceNotEnough)

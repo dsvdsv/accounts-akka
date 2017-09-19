@@ -8,9 +8,8 @@ import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import akka.util.ByteString
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
-import spray.json._
 import spray.json.DefaultJsonProtocol._
-import spray.json.{JsNumber, JsObject, JsString}
+import spray.json.{JsNumber, JsObject, JsString, _}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -54,12 +53,12 @@ class RestServerSpec extends TestKit(ActorSystem("RestServerSpec"))
       )
 
       body.parseJson.convertTo[List[JsObject]] should contain allOf(
-          JsObject(Map("accountId" -> JsNumber(1), "balance" -> JsNumber(100))),
-          JsObject(Map("accountId" -> JsNumber(2), "balance" -> JsNumber(90))),
-          JsObject(Map("accountId" -> JsNumber(3), "balance" -> JsNumber(110))),
-          JsObject(Map("accountId" -> JsNumber(4), "balance" -> JsNumber(200))),
-          JsObject(Map("accountId" -> JsNumber(5), "balance" -> JsNumber(600)))
-        )
+        JsObject(Map("accountId" -> JsNumber(1), "balance" -> JsNumber(100))),
+        JsObject(Map("accountId" -> JsNumber(2), "balance" -> JsNumber(90))),
+        JsObject(Map("accountId" -> JsNumber(3), "balance" -> JsNumber(110))),
+        JsObject(Map("accountId" -> JsNumber(4), "balance" -> JsNumber(200))),
+        JsObject(Map("accountId" -> JsNumber(5), "balance" -> JsNumber(600)))
+      )
     }
     it("should return error if from account not exist") {
       val response = Await.result(
@@ -80,8 +79,8 @@ class RestServerSpec extends TestKit(ActorSystem("RestServerSpec"))
         10.second
       )
 
-      body.parseJson shouldEqual(
-          JsObject(Map("message" -> JsString("Account does not exist")))
+      body.parseJson shouldEqual (
+        JsObject(Map("message" -> JsString("Account does not exist")))
         )
     }
 
@@ -104,7 +103,7 @@ class RestServerSpec extends TestKit(ActorSystem("RestServerSpec"))
         10.second
       )
 
-      body.parseJson shouldEqual(
+      body.parseJson shouldEqual (
         JsObject(Map("message" -> JsString("Account does not exist")))
         )
     }
@@ -128,7 +127,7 @@ class RestServerSpec extends TestKit(ActorSystem("RestServerSpec"))
         10.second
       )
 
-      body.parseJson shouldEqual(
+      body.parseJson shouldEqual (
         JsObject(Map("message" -> JsString("This transfer is restricted")))
         )
     }
@@ -152,7 +151,7 @@ class RestServerSpec extends TestKit(ActorSystem("RestServerSpec"))
         10.second
       )
 
-      body.parseJson shouldEqual(
+      body.parseJson shouldEqual (
         JsObject(Map("message" -> JsString("This transfer is restricted")))
         )
     }
@@ -176,7 +175,7 @@ class RestServerSpec extends TestKit(ActorSystem("RestServerSpec"))
         10.second
       )
 
-      body.parseJson shouldEqual(
+      body.parseJson shouldEqual (
         JsObject(Map("message" -> JsString("Ok")))
         )
     }

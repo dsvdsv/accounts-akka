@@ -1,11 +1,9 @@
 package com.accounts.rest
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{HttpApp, Route}
 import akka.pattern.ask
 import akka.persistence.inmemory.query.scaladsl.InMemoryReadJournal
@@ -25,9 +23,7 @@ object RestServer extends HttpApp {
 
   case class Account(accountId: Long, balance: Long)
   case class CreateTransfer(amount: Long, from: Long, to: Long)
-
   case class Response(message: String)
-
 
   implicit val accountFormat = jsonFormat2(Account)
   implicit val createTransferFormat = jsonFormat3(CreateTransfer)
@@ -57,26 +53,7 @@ object RestServer extends HttpApp {
     RestServer.startServer("localhost", 8080, system)
   }
 
-  def accountsState() = {
-    val readJournal: InMemoryReadJournal = PersistenceQuery(system)
-      .readJournalFor[InMemoryReadJournal](InMemoryReadJournal.Identifier)
-
-    readJournal.currentPersistenceIds()
-      .filter(_.startsWith("account-"))
-      .flatMapConcat { accountId =>
-        readJournal.currentEventsByPersistenceId(accountId, 0, Long.MaxValue)
-          .fold(0L)((balance, elem) => elem.event match {
-            case Initialized(amount) => amount
-            case Deposited(amount, _) => balance + amount
-            case Withdrawn(amount, _) => balance - amount
-          })
-          .map {
-            Account(accountId.replace("account-", "").toLong, _)
-          }
-      }
-  }
-
-  override def routes:Route =
+  override def routes: Route =
     path("accounts") {
       get {
         complete(
@@ -101,5 +78,24 @@ object RestServer extends HttpApp {
           }
         }
       }
+
+  def accountsState() = {
+    val readJournal: InMemoryReadJournal = PersistenceQuery(system)
+      .readJournalFor[InMemoryReadJournal](InMemoryReadJournal.Identifier)
+
+    readJournal.currentPersistenceIds()
+      .filter(_.startsWith("account-"))
+      .flatMapConcat { accountId =>
+        readJournal.currentEventsByPersistenceId(accountId, 0, Long.MaxValue)
+          .fold(0L)((balance, elem) => elem.event match {
+            case Initialized(amount) => amount
+            case Deposited(amount, _) => balance + amount
+            case Withdrawn(amount, _) => balance - amount
+          })
+          .map {
+            Account(accountId.replace("account-", "").toLong, _)
+          }
+      }
+  }
 
 }

@@ -35,7 +35,6 @@ class BankTransferSpec extends TestKit(ActorSystem("BankTransferSpec")) with Imp
     it("get AccountNotExist if both account not exist") {
       bank ! Transfer(10, 999, 8989)
       expectMsg(10.second, AccountNotExist)
-
     }
 
     it("get AccountNotExist if from account not exist") {

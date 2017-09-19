@@ -99,11 +99,10 @@ sealed trait TransactionCommand
 sealed trait TransactionEvent
 
 object Transaction{
-  // protocol
+
   case class TransferMoney(amount: Long, from: ActorRef, to: ActorRef)
     extends TransactionCommand
 
-  // events
   case class TransactionStarted(
      amount: Long,
      fromActor: String,
